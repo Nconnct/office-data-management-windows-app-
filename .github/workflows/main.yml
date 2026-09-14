@@ -1,0 +1,46 @@
+name: Build
+
+# Stage 1 goal: prove the project compiles cleanly on a real Windows machine.
+# This workflow restores, builds in Release, and uploads the compiled app
+# as a downloadable artifact. Packaging a signed installer / single EXE
+# release is a later stage (see README roadmap).
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore UniversalOfficeDataManager.sln
+
+      - name: Build (Release)
+        run: dotnet build UniversalOfficeDataManager.sln --configuration Release --no-restore
+
+      - name: Publish (self-contained folder, for artifact inspection)
+        run: >
+          dotnet publish src/UniversalOfficeDataManager/UniversalOfficeDataManager.csproj
+          --configuration Release
+          --output publish
+          --no-restore
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: UniversalOfficeDataManager-win-x64
+          path: publish/
+          retention-days: 14
